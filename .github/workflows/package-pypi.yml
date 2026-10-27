@@ -95,8 +95,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
       - name: Set up tree-sitter CLI
-        if: ${{inputs.generate}}
+        if: ${{inputs.generate && matrix.os != 'ubuntu-24.04-riscv'}}
         uses: tree-sitter/setup-action/cli@v2
+      - name: Set up tree-sitter CLI (justeph/tree-sitter nightly)
+        if: ${{inputs.generate && matrix.os == 'ubuntu-24.04-riscv'}}
+        shell: bash
+        run: |-
+          mkdir -p "$RUNNER_TEMP/tree-sitter/bin"
+          curl -fLSs "$TREE_SITTER_REPO/releases/download/nightly/tree-sitter-linux-riscv64.gz" | \
+            gunzip > "$RUNNER_TEMP/tree-sitter/bin/tree-sitter"
+          chmod +x "$RUNNER_TEMP/tree-sitter/bin/tree-sitter"
+          printf '%s\n' "$RUNNER_TEMP/tree-sitter/bin" >> "$GITHUB_PATH"
+        env:
+          TREE_SITTER_REPO: https://github.com/justeph/tree-sitter
       # Node.js does not provide official riscv64 builds for actions/setup-node
       - name: Set up Node.js
         if: ${{inputs.generate && matrix.os == 'ubuntu-24.04-riscv'}}
