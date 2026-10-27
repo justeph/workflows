@@ -88,14 +88,36 @@ jobs:
           - windows-11-arm
           - ubuntu-24.04
           - ubuntu-24.04-arm
+          - ubuntu-24.04-riscv
           - macos-15
           - macos-15-intel
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+      # tree-sitter releases do not ship a linux-riscv64 CLI: pass the commit of
+      # the latest release so that the setup action builds it from source
+      # Remove this when tree-sitter starts shipping a linux-riscv64 CLI, see
+      # https://github.com/tree-sitter/tree-sitter/issues/6079
+      - name: Resolve tree-sitter CLI commit
+        id: tree-sitter-ref
+        if: ${{inputs.generate && matrix.os == 'ubuntu-24.04-riscv'}}
+        shell: bash
+        run: |-
+          tag=$(gh release view -R tree-sitter/tree-sitter -q .tagName --json tagName)
+          printf 'sha=%s\n' "$(gh api "repos/tree-sitter/tree-sitter/commits/$tag" -q .sha)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{github.token}}
       - name: Set up tree-sitter CLI
         if: ${{inputs.generate}}
         uses: tree-sitter/setup-action/cli@v2
+        with:
+          tree-sitter-ref: ${{steps.tree-sitter-ref.outputs.sha || 'latest'}}
+      # The riscv64 runner image ships Node.js in the tool cache but not in PATH
+      - name: Set up Node.js
+        if: ${{inputs.generate && matrix.os == 'ubuntu-24.04-riscv'}}
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
       - name: Install dependencies
         shell: bash
         run: |-
