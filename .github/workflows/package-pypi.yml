@@ -88,6 +88,7 @@ jobs:
           - windows-11-arm
           - ubuntu-24.04
           - ubuntu-24.04-arm
+          - ubuntu-24.04-riscv
           - macos-15
           - macos-15-intel
     steps:
@@ -96,6 +97,13 @@ jobs:
       - name: Set up tree-sitter CLI
         if: ${{inputs.generate}}
         uses: tree-sitter/setup-action/cli@v2
+      # Node.js does not provide official riscv64 builds for actions/setup-node
+      - name: Set up Node.js
+        if: ${{inputs.generate && matrix.os == 'ubuntu-24.04-riscv'}}
+        shell: bash
+        run: |-
+          sudo apt-get update -qy
+          sudo apt-get install -qy nodejs npm
       - name: Install dependencies
         shell: bash
         run: |-
